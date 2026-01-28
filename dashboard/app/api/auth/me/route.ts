@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DATABASE_ID, databases, JWT_SECRET } from "@/lib/appwrite";
+import { DATABASE_ID, databases, DEVS_COLLECTION, JWT_SECRET } from "@/lib/appwrite";
 import jwt from "jsonwebtoken";
 
 export async function GET(req: NextRequest) {
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
         const user = jwt.verify(token, JWT_SECRET) as { $id: string };
 
-        const data = await databases.getDocument(DATABASE_ID, "users", user.$id);
+        const data = await databases.getDocument(DATABASE_ID, DEVS_COLLECTION, user.$id);
 
         return NextResponse.json(data, { status: 200 });
     } catch {

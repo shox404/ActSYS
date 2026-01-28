@@ -35,16 +35,16 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="flex flex-col py-6 gap-7">
+        <div className="min-h-[calc(100dvh-57px)] flex flex-col pt-6 gap-7">
             <h1 className="text-3xl mx-5 md:mx-40">Personal Projects</h1>
 
-            <Tabs defaultValue="projects" className="flex flex-col gap-4">
+            <Tabs defaultValue="projects" className="flex-1 flex flex-col gap-4">
                 <TabsList className="mx-5 md:mx-40">
                     <TabsTrigger value="projects">Projects</TabsTrigger>
                     <TabsTrigger value="settings">Settings</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="projects" className="pt-7 border-t">
+                <TabsContent value="projects" className="flex-1 py-7 border-t bg-accent h-full">
                     <div className="mx-5 md:mx-40 flex flex-col gap-4">
                         <div className="flex">
                             <Button onClick={handleCreateProject} disabled={isAdding}>
