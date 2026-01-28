@@ -12,7 +12,7 @@ export default function LayoutProvider({ children }: { children: React.ReactNode
             <ThemeProvider disableTransitionOnChange>
                 {children}
                 <Toaster richColors />
-                <Analytics />
+                <Analytics debug={false} />
             </ThemeProvider>
         </Provider>
     );
