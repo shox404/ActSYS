@@ -12,11 +12,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
 
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
 
     const oldOtps = await databases.listDocuments(DATABASE_ID, OTP_COLLECTION, [
-        Query.equal("email", email),
+        Query.equal("email", email)
     ]);
 
     for (const doc of oldOtps.documents) {
@@ -26,7 +25,6 @@ export async function POST(req: NextRequest) {
     await databases.createDocument(DATABASE_ID, OTP_COLLECTION, ID.unique(), {
         email,
         code,
-        expiresAt,
     });
 
     await resend.emails.send({
@@ -58,7 +56,7 @@ export async function POST(req: NextRequest) {
                 ${code}
             </p>
             <p style="font-size: 14px; color: #777; margin-top: 20px;">
-                This code will expire in 10 minutes.
+                This code will expire in 15 minutes.
             </p>
         </div>
         `,

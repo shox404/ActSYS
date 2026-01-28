@@ -1,6 +1,5 @@
 import type { User } from "@/lib/types/auth";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { toast } from "sonner";
 
 export const authApi = createApi({
   reducerPath: "authApi",
@@ -21,16 +20,6 @@ export const authApi = createApi({
         method: "POST",
         body,
       }),
-      async onQueryStarted(_, { queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          toast.success("Code sent! Check your email.");
-        } catch (err: any) {
-          toast.error(
-            err?.error?.data?.error || "Failed to send code"
-          );
-        }
-      },
     }),
 
     verifyCode: builder.mutation<User, { email: string; code: string }>({
@@ -40,16 +29,6 @@ export const authApi = createApi({
         body,
       }),
       invalidatesTags: ["Auth"],
-      async onQueryStarted(_, { queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          toast.success("Logged in successfully!");
-        } catch (err: any) {
-          toast.error(
-            err?.error?.data?.error || "Invalid code"
-          );
-        }
-      },
     }),
 
     logout: builder.mutation<void, void>({
@@ -58,13 +37,6 @@ export const authApi = createApi({
         method: "POST",
       }),
       invalidatesTags: ["Auth"],
-      async onQueryStarted(_, { queryFulfilled }) {
-        try {
-          await queryFulfilled;
-        } finally {
-          toast.success("Logged out");
-        }
-      },
     }),
   }),
 });

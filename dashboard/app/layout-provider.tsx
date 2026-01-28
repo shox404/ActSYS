@@ -1,15 +1,19 @@
 "use client";
 
+import { store } from "@/store";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "next-themes";
+import { Provider } from "react-redux";
 import { Toaster } from "sonner";
 
 export default function LayoutProvider({ children }: { children: React.ReactNode }) {
     return (
-        <ThemeProvider attribute="class" enableSystem disableTransitionOnChange>
-            {children}
-            <Toaster richColors />
-            <Analytics />
-        </ThemeProvider>
+        <Provider store={store}>
+            <ThemeProvider disableTransitionOnChange>
+                {children}
+                <Toaster richColors />
+                <Analytics />
+            </ThemeProvider>
+        </Provider>
     );
 }

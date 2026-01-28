@@ -21,7 +21,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid code" }, { status: 401 });
     }
 
-    if (new Date(otp.expiresAt) < new Date()) {
+    const OTP_LIFETIME = 15 * 60 * 1000;
+
+    const createdAt = new Date(otp.$createdAt);
+    const now = new Date();
+    if (now.getTime() - createdAt.getTime() > OTP_LIFETIME) {
         return NextResponse.json({ error: "Code expired" }, { status: 401 });
     }
 
@@ -35,8 +39,7 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
         user = await databases.createDocument(DATABASE_ID, USERS_COLLECTION, ID.unique(), {
-            name: email.split("@")[0],
-            email,
+            email
         });
     }
 

@@ -2,10 +2,29 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/auth";
+import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { setSentEmail } from "@/store/slices/auth";
+import {
+  useCheckAuthQuery,
+  useRequestCodeMutation,
+  useVerifyCodeMutation,
+} from "@/store/apis/auth";
+
 import { Button } from "@/components/ui/button";
-import { InputGroupInput, InputGroup, InputGroupAddon } from "@/components/ui/input-group";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Mail, Key, Check, LoaderIcon } from "lucide-react";
 
 export default function AuthPage() {
@@ -14,8 +33,12 @@ export default function AuthPage() {
   const [code, setCode] = useState("");
 
   const router = useRouter();
+  const dispatch = useDispatch();
+  const sentEmail = useSelector((state: RootState) => state.auth.sentEmail);
 
-  const { user, loading, sentEmail, requestCode, verifyCode } = useAuthStore();
+  const { data: user, isLoading: checkingAuth } = useCheckAuthQuery();
+  const [requestCode, { isLoading: requesting }] = useRequestCodeMutation();
+  const [verifyCode, { isLoading: verifying }] = useVerifyCodeMutation();
 
   useEffect(() => {
     if (user) router.push("/");
@@ -23,86 +46,109 @@ export default function AuthPage() {
 
   const handleRequestCode = async () => {
     if (!email) return;
-
     if (email === sentEmail) {
       setStep(2);
       return;
     }
-
-    await requestCode(email);
-    setStep(2);
+    try {
+      await requestCode({ email }).unwrap();
+      dispatch(setSentEmail(email));
+      toast.success("Code sent! Check your email.");
+      setStep(2);
+    } catch (err: any) {
+      toast.error(err?.data?.error || "Failed to send code");
+    }
   };
 
   const handleVerifyCode = async () => {
     if (!code) return;
-    await verifyCode(email, code);
-    router.push("/");
+    try {
+      await verifyCode({ email, code }).unwrap();
+      toast.success("Logged in successfully!");
+      router.push("/");
+    } catch (err: any) {
+      toast.error(err?.data?.error || "Invalid code");
+    }
   };
 
+  const loading = checkingAuth || requesting || verifying;
+
   return (
-    <div className="flex justify-center items-center min-h-[calc(100dvh-49px)] px-4">
-      <Card className="w-full max-w-md shadow-lg border rounded-lg">
-        <CardHeader>
-          <CardTitle className="text-center">
+    <div className="flex justify-center items-center min-h-dvh px-4 bg-white">
+      <Card className="w-full max-w-md border rounded-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="text-lg font-semibold">
             {step === 1 ? "Login with Email" : "Enter the Code"}
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-sm mt-1">
             {step === 1
               ? "We will send a 6-digit code to your email"
               : "Check your email and enter the code"}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           {step === 1 && (
             <>
-              <InputGroup>
-                <InputGroupAddon>
-                  <Mail className="text-gray-400 w-4 h-4" />
+              <InputGroup className="border rounded-md">
+                <InputGroupAddon className="border-r">
+                  <Mail className="w-5 h-5" />
                 </InputGroupAddon>
                 <InputGroupInput
                   type="email"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="border-none focus:ring-0"
                 />
               </InputGroup>
+
               <Button
-                className="w-full flex items-center justify-center gap-2"
+                className="w-full flex items-center justify-center gap-2 border rounded-md"
                 onClick={handleRequestCode}
                 disabled={loading || !email}
               >
-                {loading
-                  ? <div className="flex items-center gap-1"><LoaderIcon className="animate-spin" /> Sending</div>
-                  : "Send Code"}
-                {!loading && <Check className="w-4 h-4" />}
+                {requesting ? (
+                  <div className="flex items-center gap-2">
+                    <LoaderIcon className="animate-spin w-5 h-5" />
+                    Sending
+                  </div>
+                ) : (
+                  <>
+                    Send Code
+                    <Check className="w-5 h-5" />
+                  </>
+                )}
               </Button>
             </>
           )}
 
           {step === 2 && (
             <>
-              <InputGroup>
-                <InputGroupAddon>
-                  <Key className="text-gray-400 w-4 h-4" />
+              <InputGroup className="border rounded-md">
+                <InputGroupAddon className="border-r">
+                  <Key className="w-5 h-5" />
                 </InputGroupAddon>
                 <InputGroupInput
                   type="text"
                   placeholder="6-digit code"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
+                  className="border-none focus:ring-0"
                 />
               </InputGroup>
+
               <Button
-                className="w-full"
+                className="w-full border rounded-md"
                 onClick={handleVerifyCode}
                 disabled={loading || !code}
               >
-                {loading ? "Verifying..." : "Login"}
+                {verifying ? "Verifying..." : "Login"}
               </Button>
+
               <Button
                 variant="link"
-                className="w-full mt-2"
+                className="w-full mt-2 text-center"
                 onClick={() => {
                   setStep(1);
                   setCode("");
