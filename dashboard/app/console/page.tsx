@@ -1,74 +1,100 @@
 "use client";
 
-import type { Project } from "@/lib/types/projects";
-import { useEffect } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/store";
-import { useGetProjectsQuery, useAddProjectMutation } from "@/store/apis/projects";
-import { setProjects, addProject as addProjectSlice } from "@/store/slices/projects";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { setUrl, setMapping, setLocalUsers, clearLocalUsers } from "@/store/slices/users";
+import { useSaveUsersMutation } from "@/store/apis/users";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import ProjectCard from "./ProjectCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { User } from "@/lib/types/users";
 
 export default function Dashboard() {
     const dispatch = useDispatch<AppDispatch>();
+    const { localUsers, mapping, url } = useSelector((state: RootState) => state.users);
+    const [saveUsers] = useSaveUsersMutation();
+    const [loading, setLoading] = useState(false);
 
-    const { data: apiProjects = [], isLoading, isError } = useGetProjectsQuery();
-    const [addProjectApi, { isLoading: isAdding }] = useAddProjectMutation();
+    const handleFetchUsers = async () => {
+        if (!url) return alert("Enter a URL");
 
-    const projects = useSelector((state: RootState) => state.projects.projects);
-
-    useEffect(() => {
-        if (apiProjects.length) {
-            dispatch(setProjects(apiProjects));
-        }
-    }, [apiProjects, dispatch]);
-
-    const handleCreateProject = async () => {
+        setLoading(true);
         try {
-            const newProject: Project = await addProjectApi({ name: "New Project" }).unwrap();
-            dispatch(addProjectSlice(newProject));
-        } catch (error) {
-            console.error("Failed to create project:", error);
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!Array.isArray(data)) throw new Error("URL must return an array");
+
+            const adapted: User[] = data.map((u: any) => ({
+                email: u[mapping.email] ?? "",
+                name: u[mapping.name] ?? "",
+                sub: u[mapping.sub] ?? "",
+            }));
+
+            dispatch(setLocalUsers(adapted));
+        } catch (err: any) {
+            alert("Failed to fetch or map users: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveUsers = async () => {
+        if (localUsers.length === 0) return;
+        setLoading(true);
+        try {
+            await saveUsers({ users: localUsers }).unwrap();
+            alert("Users saved!");
+            dispatch(clearLocalUsers());
+        } catch (err) {
+            console.error(err);
+            alert("Failed to save users");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-[calc(100dvh-57px)] flex flex-col pt-6 gap-7">
-            <h1 className="text-3xl mx-5 md:mx-40">Personal Projects</h1>
+        <div className="p-6 flex flex-col gap-6">
+            <h1 className="text-3xl">Dashboard</h1>
 
-            <Tabs defaultValue="projects" className="flex-1 flex flex-col gap-4">
-                <TabsList className="mx-5 md:mx-40">
-                    <TabsTrigger value="projects">Projects</TabsTrigger>
-                    <TabsTrigger value="settings">Settings</TabsTrigger>
-                </TabsList>
+            <div className="flex flex-col gap-2">
+                <Input
+                    placeholder="Enter JSON URL"
+                    value={url}
+                    onChange={(e) => dispatch(setUrl(e.target.value))}
+                />
 
-                <TabsContent value="projects" className="flex-1 py-7 border-t bg-accent h-full">
-                    <div className="mx-5 md:mx-40 flex flex-col gap-4">
-                        <div className="flex">
-                            <Button onClick={handleCreateProject} disabled={isAdding}>
-                                <Plus /> Create project
-                            </Button>
-                        </div>
+                <div className="grid grid-cols-3 md:grid-cols-3 gap-2">
+                    {(["email", "name", "sub"] as const).map((k) => (
+                        <Input
+                            key={k}
+                            placeholder={`Map their key → our ${k}`}
+                            value={mapping[k]}
+                            onChange={(e) => dispatch(setMapping({ key: k as keyof typeof mapping, value: e.target.value }))}
+                        />
+                    ))}
+                </div>
 
-                        {isLoading && <p>Loading projects...</p>}
-                        {isError && <p>Error loading projects.</p>}
+                <div className="flex gap-2 mt-2">
+                    <Button onClick={handleFetchUsers} disabled={loading}>Fetch & Map</Button>
+                    <Button onClick={handleSaveUsers} disabled={loading || localUsers.length === 0}>Save All</Button>
+                </div>
+            </div>
 
-                        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-5">
-                            {projects.map((project: Project, index: number) => (
-                                <ProjectCard key={index} name={project.name} />
-                            ))}
-                        </div>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="settings" className="pt-7 border-t">
-                    <div className="mx-5 md:mx-40">
-                        <p>Settings content goes here.</p>
-                    </div>
-                </TabsContent>
-            </Tabs>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                {localUsers.map((u: any) => (
+                    <Card key={u.sub + u.email}>
+                        <CardHeader>
+                            <CardTitle>{u.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p>Email: {u.email}</p>
+                            <p>Sub: {u.sub}</p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
         </div>
     );
 }

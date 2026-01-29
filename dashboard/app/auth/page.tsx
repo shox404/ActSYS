@@ -74,7 +74,7 @@ export default function AuthPage() {
   const loading = checkingAuth || requesting || verifying;
 
   return (
-    <div className="flex justify-center items-center min-h-dvh px-4 bg-white">
+    <div className="flex justify-center items-center min-h-[calc(100dvh-56px)] px-4">
       <Card className="w-full max-w-md border rounded-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-lg font-semibold">
